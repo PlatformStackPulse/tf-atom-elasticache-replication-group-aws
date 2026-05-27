@@ -1,0 +1,5 @@
+{
+  "molecules": [
+    "tf-molecule-elasticache-redis-aws"
+  ]
+}

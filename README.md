@@ -3,9 +3,39 @@
 [![CI](https://github.com/PlatformStackPulse/tf-atom-elasticache-replication-group-aws/actions/workflows/ci.yml/badge.svg)](https://github.com/PlatformStackPulse/tf-atom-elasticache-replication-group-aws/actions/workflows/ci.yml)
 ![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.6.0-blueviolet)
 
-## Purpose
+Terraform atom that provisions an AWS ElastiCache **Redis replication group** with encryption, auth-token support, and Multi-AZ high availability, named via the [tf-label](https://github.com/PlatformStackPulse/tf-label) convention.
 
-ElastiCache Redis replication group with encryption, auth, and multi-AZ support.
+## Features
+
+- **Redis replication group** (`aws_elasticache_replication_group`) with a configurable node type and cluster count.
+- **Encryption** — at-rest (optional KMS key) and in-transit encryption, both enabled by default.
+- **Auth token** support for password-protected Redis (requires transit encryption).
+- **High availability** — automatic failover and Multi-AZ enabled by default.
+- **Backups & maintenance** — snapshot retention/window and weekly maintenance window inputs.
+- **tf-label naming** — deterministic `namespace-stage-name` id and standard tags via `module.this`.
+- **`enabled` toggle** — set `enabled = false` to plan/create zero resources.
+
+## Usage
+
+```hcl
+module "redis" {
+  source = "git::https://github.com/PlatformStackPulse/tf-atom-elasticache-replication-group-aws.git?ref=v1.0.0"
+
+  # tf-label naming
+  namespace = "eg"
+  stage     = "prod"
+  name      = "cache"
+
+  # Required networking / placement
+  subnet_group_name  = "eg-prod-cache-subnets"
+  security_group_ids = ["sg-0123456789abcdef0"]
+
+  # Sizing
+  node_type          = "cache.t3.micro"
+  num_cache_clusters = 2
+  engine_version     = "7.1"
+}
+```
 
 ## Module Documentation
 
@@ -86,3 +116,22 @@ ElastiCache Redis replication group with encryption, auth, and multi-AZ support.
 | <a name="output_primary_endpoint_address"></a> [primary\_endpoint\_address](#output\_primary\_endpoint\_address) | Primary endpoint address |
 | <a name="output_reader_endpoint_address"></a> [reader\_endpoint\_address](#output\_reader\_endpoint\_address) | Reader endpoint address |
 <!-- END_TF_DOCS -->
+
+## Tests
+
+Unit tests use a mock AWS provider (`mock_provider "aws" {}`) — no AWS credentials or real resources are required. They plan the module and assert on plan-known values (the tf-label id, resource count, and input pass-throughs).
+
+```bash
+# Run unit tests
+terraform init -backend=false
+terraform test -test-directory=tests/unit
+
+# Or via the Makefile
+make test-unit
+```
+
+Integration tests (which create real AWS resources) live under `tests/integration/` and require AWS credentials:
+
+```bash
+terraform test -test-directory=tests/integration
+```
